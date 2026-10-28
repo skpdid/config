@@ -1,0 +1,52 @@
+#!/bin/bash
+CONF="/etc/nginx/conf.d/multidomain.conf"
+
+usage() {
+    echo -e "Usage:"
+    echo -e "  $0 add <IP>     Tambah IP ke whitelist"
+    echo -e "  $0 remove <IP>  Hapus IP dari whitelist"
+    echo -e "  $0 list         Lihat semua IP yang diizinkan"
+    exit 1
+}
+
+case "$1" in
+    list)
+        echo "=== IP Whitelist /admin ==="
+        grep -E "^\s+allow" "$CONF" | grep -v "127.0.0.1\|::1\|2a04:3543" | awk '{print NR". "$2}' | tr -d ';'
+        echo ""
+        echo "(IP VPS & localhost selalu diizinkan)"
+        ;;
+
+    add)
+        [ -z "$2" ] && usage
+        IP="$2"
+        # Validasi format IP (v4 atau v6)
+        if ! echo "$IP" | grep -qE '^([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]+)?$|^[0-9a-fA-F:]+(/[0-9]+)?$'; then
+            echo "Error: Format IP tidak valid: $IP"
+            exit 1
+        fi
+        # Cek duplikat
+        if grep -q "allow $IP;" "$CONF"; then
+            echo "IP $IP sudah ada di whitelist."
+            exit 0
+        fi
+        # Sisipkan setelah baris "allow 2a04:3543..."
+        sed -i "/allow 2a04:3543/a\\        allow $IP;  # added $(date +%Y-%m-%d)" "$CONF"
+        nginx -t && nginx -s reload && echo "✅ IP $IP berhasil ditambahkan." || echo "❌ Gagal, config dikembalikan."
+        ;;
+
+    remove)
+        [ -z "$2" ] && usage
+        IP="$2"
+        if ! grep -q "allow $IP;" "$CONF"; then
+            echo "IP $IP tidak ditemukan di whitelist."
+            exit 1
+        fi
+        sed -i "/allow $IP;/d" "$CONF"
+        nginx -t && nginx -s reload && echo "✅ IP $IP berhasil dihapus." || echo "❌ Gagal."
+        ;;
+
+    *)
+        usage
+        ;;
+esac
