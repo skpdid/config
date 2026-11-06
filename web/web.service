@@ -1,0 +1,14 @@
+[Unit]
+Description=SukaPedia Website
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/etc/website
+ExecStart=/etc/website/env/bin/python3 -m app
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
