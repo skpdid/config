@@ -1,14 +1,17 @@
 [Unit]
-Description=SukaPedia Website
+Description=Website App
 After=network.target
 
 [Service]
 Type=simple
-User=root
+User=www-data
+Group=www-data
 WorkingDirectory=/etc/website
 ExecStart=/etc/website/env/bin/python3 -m app
-Restart=always
-RestartSec=3
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
